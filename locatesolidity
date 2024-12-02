@@ -1,0 +1,117 @@
+//This contract is a local directory to manage information about residents in an area.
+//It allows people to add their details (name, age, residency status), retrieve information,
+// check their residency status, and count the total number of residents still living in the area.
+//Some of the system design areas we need to think of are:
+//List of Residents residing in the area,
+//Details: Name, age, lIVE IN THE area or not?  (related data)
+// Someone adding their details. (tx) -> write, 
+// List of all the residents residing in the area -> read
+// If we add a resident, we want a log of the change in state
+// Check if in our list, a resident is still residing in Nairobi or not
+// Get the total number of residents still residing in the area
+
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.26;
+
+contract LocalDirectory {
+    // A struct is a custom data type in Solidity. 
+    // It groups related data into a single object. In this case, a `Person` holds:
+    // - Their name (string)
+    // - Their age (uint256)
+    // - Their residency status (LivesHere or MovedAway)
+    struct Person {
+        string name;
+        uint256 age;  // uint means can only use positive whole numbers ; to use negative whole numbers eg -45 you use int
+        ResidencyStatus residencyStatus; //this is to show whether you live here or not
+
+    }
+
+    // An enum is a way to define a set of named values, where you choose either one variant or the other. 
+    // Here, `ResidencyStatus` represents whether a person lives in the area or has moved away.
+    enum ResidencyStatus {
+        LivesHere,
+        MovedAway
+    }
+
+    // State variables: These are stored on the blockchain and persist between transactions.
+
+    // An array (list) to store all the residents. 
+    // It's a dynamic array, meaning new residents can be added.
+    // if it was a static array, it could be eg Person[6] public listOfResidents, to restrain it to only 6 people in the list
+    Person[] public listOfResidents;  //state variable -> Store on blockchain
+   
+    //events are used to log actions happening in the blockchain
+    event PersonAdded(string name, uint256 age, ResidencyStatus residencyStatus);
+
+    //[cyndie, 23, lives here; Jordan, 24, moved away; jackson, 28, lives here ]
+    // key-value key: Jordan, value: Jordan's details held in Person struct 
+    // A mapping (key-value store) to link each person's name to their details.
+    // Key: A person's name (string)
+    // Value: A `Person` struct containing their details
+    mapping(string => Person) public nameToResidentDetails;
+
+    //functions. Add someone to registry
+    // **Function 1: Add a new person to the registry**
+    // - Inputs: Name, age, and residency status of the person
+    // - Updates the `listOfResidents` array and `nameToResidentDetails` mapping.
+    // - Emits an event to notify the addition of a new person.
+    function addNewPerson(string memory _name, uint256 _age, ResidencyStatus _residencyStatus)public {
+        listOfResidents.push(Person(_name, _age, _residencyStatus)); //adding details to the array
+        //map the details we are adding to the array to the key-value pairs
+        nameToResidentDetails[_name] = Person(_name, _age, _residencyStatus);
+
+        // This event will notify whenever a new person is added to the registry.
+        emit PersonAdded(_name, _age, _residencyStatus);
+    }
+    
+    // function which checks the residency status of a person in the register
+    // **Function 2: Get the residency status of a person**
+    // - Input: The person's name
+    // - Output: A message indicating whether the person lives here, has moved away, 
+    //   or is not in the registry.
+    function getResidencyStatus(string memory _name) public view returns(string memory) {
+        ResidencyStatus personStatus = nameToResidentDetails[_name].residencyStatus; // Retrieve the residency status of the person from the mapping
+
+         // Check the residency status and return an appropriate message
+        if (personStatus == ResidencyStatus.LivesHere) {
+            return "This person lives here!";
+        }else if (personStatus == ResidencyStatus.MovedAway) {
+            return "This person relocated to another area!";
+        } else {
+            return "This person does not exist in the registry";
+        }
+    }
+
+    // function to count the number or residents living in the area (LivesHere)
+    // **Function 3: Count the total number of residents still living in the area**
+    // - Loops through the `listOfResidents` array to check the residency status of each person.
+    // - Returns the number of residents who have `ResidencyStatus.LivesHere`.
+    function countResidents() public view returns(uint256) {
+        uint256 count = 0;
+
+        for(uint256 i=0; i < listOfResidents.length; i++) {
+            if (listOfResidents[i].residencyStatus == ResidencyStatus.LivesHere) {
+                count ++;
+            }
+        }
+
+        return count;
+    }
+
+    // **Key Features of This Contract**
+    // 1. The `listOfResidents` array stores all residents, allowing iteration if needed.
+    // 2. The `nameToResidentDetails` mapping provides quick lookups for resident details by name.
+    // 3. Events (like `PersonAdded`) log important actions on the blockchain for transparency.
+    // 4. Functions like `getResidencyStatus` and `countResidents` allow querying of the data.
+
+    // **Additional Notes**
+    // - The `view` modifier in `getResidencyStatus` and `countResidents` indicates that these 
+    //   functions only read data and do not modify the state, saving gas costs when called.
+    // - The `memory` keyword is used for `_name` because strings are dynamic data types 
+    //   and must have their data location specified in Solidity.
+
+
+
+
+}
